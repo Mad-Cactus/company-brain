@@ -11,6 +11,10 @@
   },
   "types": "./src/index.ts",
   "files": ["src"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mad-Cactus/company-brain.git"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "bun test src/self-check.test.ts",
