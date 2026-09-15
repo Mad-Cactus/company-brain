@@ -10,8 +10,6 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { ipHash } from "./track";
-import type { Tracker } from "./track";
 
 const cookieList = (request: Request) => (request.headers.get("cookie") || "").split(/;\s*/);
 
@@ -57,29 +55,20 @@ export const tokenCookie = (request: Request) => {
     : "";
 };
 
-/** The `/` preamble every brain repeats: track the visit (unless ?demo=1 or
- * self) and decide the me-cookie. Call once at the top of the `/` handler. */
-export function handleVisit(
-  request: Request,
-  tracker: Tracker,
-): { demo: boolean; tracked: boolean; meCookie: string } {
+/** The `/` preamble every brain repeats: decide the me-cookie + demo flag.
+ * Visits are NOT counted here — server-side GET tracking logged every
+ * scanner/bot hit (all 32 recorded koola visits were bots). The visit comes
+ * from the page's JS beacon via POST /track, where a UA denylist blocks
+ * headless browsers that run JS. Call once at the top of the `/` handler. */
+export function handleVisit(request: Request): { demo: boolean; meCookie: string } {
   const url = new URL(request.url);
   // ?demo=1: normal page for screenshares, but nothing is tracked and no
   // beacons are injected — metrics stay pure.
   const demo = url.searchParams.has("demo");
   const self = isMe(request);
-  let tracked = false;
-  if (!self && !demo) {
-    tracker.track("visit", {
-      host: url.host,
-      ip: ipHash(request.headers.get("x-forwarded-for") ?? ""),
-      ua: (request.headers.get("user-agent") ?? "").slice(0, 100),
-    });
-    tracked = true;
-  }
   const meCookie =
-    !demo && (url.searchParams.has("me") || keyOk(request))
+    !demo && !self && (url.searchParams.has("me") || keyOk(request))
       ? "me=1; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax"
       : "";
-  return { demo, tracked, meCookie };
+  return { demo, meCookie };
 }

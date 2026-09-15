@@ -5,7 +5,7 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
 import { Elysia } from "elysia";
 import { createHmac } from "node:crypto";
-import { openSqlite, ensureEventsTable, createTracker, ownerCookieOk, isMe, keyOk, tokenOk, tokenCookie, handleVisit, brainRoutes } from "./index";
+import { openSqlite, ensureEventsTable, createTracker, ownerCookieOk, isMe, keyOk, tokenOk, tokenCookie, handleVisit, brainRoutes, BOT_UA } from "./index";
 
 process.env.DATABASE_PATH = "/tmp/company-brain-selfcheck.db";
 const sqlite = openSqlite(process.env.DATABASE_PATH);
@@ -52,6 +52,18 @@ describe("tracker", () => {
     await app.handle(new Request("http://b.test/track", { method: "POST", body: JSON.stringify({ kind: "scroll", depth: 150 }) }));
     expect(tracker.snapshot().maxDepth).toBe(100);
   });
+
+  test("visit comes from the JS beacon: human UA counts, bot UA is denied", async () => {
+    const app = new Elysia().use(brainRoutes(tracker));
+    const chrome = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
+    await app.handle(new Request("http://b.test/track", { method: "POST", headers: { "user-agent": chrome }, body: JSON.stringify({ kind: "visit", host: "koola.madcactus.org" }) }));
+    await app.handle(new Request("http://b.test/track", { method: "POST", headers: { "user-agent": "Mozilla/5.0 (compatible; CensysInspect/1.1)" }, body: JSON.stringify({ kind: "visit", host: "koola.madcactus.org" }) }));
+    await app.handle(new Request("http://b.test/track", { method: "POST", headers: { "user-agent": "curl/8.7.1" }, body: JSON.stringify({ kind: "visit", host: "koola.madcactus.org" }) }));
+    const a = tracker.snapshot();
+    expect(a.visits).toBe(1);
+    expect(BOT_UA.test("curl/8.7.1")).toBe(true);
+    expect(BOT_UA.test(chrome)).toBe(false);
+  });
 });
 
 describe("gates", () => {
@@ -88,19 +100,16 @@ describe("gates", () => {
 });
 
 describe("handleVisit + mounted routes", () => {
-  test("tracks first visit, stamps me-cookie on ?key=, demo tracks nothing", () => {
+  test("handleVisit stamps me-cookie on ?key=, demo suppresses it, tracks nothing server-side", () => {
     process.env.ACTIVITY_KEY = "k123";
-    let v = handleVisit(req("/"), tracker);
-    expect(v.tracked).toBe(true);
-    v = handleVisit(req("/?key=k123"), tracker);
-    expect(v.tracked).toBe(true); // first ?key= view still counts; cookie kicks in on the next visit
-    expect(v.meCookie).toContain("me=1");
-    v = handleVisit(req("/", { cookie: "me=1" }), tracker);
-    expect(v.tracked).toBe(false); // self now
-    v = handleVisit(req("/?demo=1"), tracker);
-    expect(v.tracked).toBe(false);
+    let v = handleVisit(req("/"));
     expect(v.meCookie).toBe("");
-    expect(tracker.snapshot().visits).toBe(2);
+    v = handleVisit(req("/?key=k123"));
+    expect(v.meCookie).toContain("me=1");
+    v = handleVisit(req("/?demo=1"));
+    expect(v.demo).toBe(true);
+    expect(v.meCookie).toBe("");
+    expect(tracker.snapshot().visits).toBe(0); // server-side GETs never count
   });
 
   test("full app: /activity gated, reset clears, ACCESS_TOKEN gates everything but /healthz", async () => {

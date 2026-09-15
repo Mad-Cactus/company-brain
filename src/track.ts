@@ -3,16 +3,12 @@
  * visit/scroll/click/dwell = the human; mcp_connect/mcp_tool = their agent.
  */
 
-import { createHash } from "node:crypto";
 import type { Database } from "bun:sqlite";
 import { log } from "./log";
 
 export type TrackKind = "visit" | "scroll" | "click" | "dwell" | "mcp_connect" | "mcp_tool";
 
 export type Tracker = ReturnType<typeof createTracker>;
-
-/** ponytail: fixed salt — hashes are write-only (no dedup reads them); new salt never breaks anything */
-export const ipHash = (ip: string) => createHash("sha256").update("cb:" + ip).digest("hex").slice(0, 12);
 
 /** created_at is naive UTC ("YYYY-MM-DD HH:MM:SS" from datetime('now')). The
  * CRM parses these with new Date(), which reads a missing tz as browser-local
