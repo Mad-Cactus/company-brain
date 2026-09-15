@@ -1,0 +1,24 @@
+{
+  "name": "company-brain",
+  "version": "0.1.0",
+  "description": "The underlay for Mad Cactus company brains: outreach activity tracking (visits, scrolls, clicks, dwell, MCP tool calls), self-exclusion gates, and the /activity API the CRM pulls.",
+  "module": "src/index.ts",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test src/self-check.test.ts",
+    "prepublishOnly": "bun run typecheck && bun test src/self-check.test.ts"
+  },
+  "dependencies": {
+    "elysia": "^1.4.29"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "typescript": "5.9"
+  }
+}
