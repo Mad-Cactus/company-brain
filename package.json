@@ -1,5 +1,6 @@
 {
-  "name": "company-brain",
+  "name": "@aspectrr/company-brain",
+  "publishConfig": { "access": "public" },
   "version": "0.1.0",
   "description": "The underlay for Mad Cactus company brains: outreach activity tracking (visits, scrolls, clicks, dwell, MCP tool calls), self-exclusion gates, and the /activity API the CRM pulls.",
   "license": "MIT",

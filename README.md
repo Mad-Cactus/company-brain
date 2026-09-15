@@ -13,7 +13,7 @@ A company brain is a client's industry live data, organized so any AI can use it
 ## Use
 
 ```ts
-import { openSqlite, ensureEventsTable, createTracker, brainRoutes, handleVisit } from "company-brain";
+import { openSqlite, ensureEventsTable, createTracker, brainRoutes, handleVisit } from "@aspectrr/company-brain";
 
 const sqlite = openSqlite("./data/brain.db");
 ensureEventsTable(sqlite);
